@@ -1,18 +1,10 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package controller;
 
-/**
- *
- * @author ahayf
- */
-import DataAccess.IDatabase;
+import DataAccess.*;
 import model.*;
- 
-import java.time.LocalDate; // represents a date without timezone
-import java.time.temporal.ChronoUnit; // date units for calculations
+import javafx.scene.control.Alert;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
  
@@ -25,98 +17,145 @@ public class FinanceController {
         this.db = db;
         this.notificationManager = notificationManager;
     }
- 
-    // Add a new transaction and update the budget cycle's current spent
-    public void addTransaction(Transaction t) {
-        db.insert("transactions", t);
- 
-        // Update current_spent on the budget cycle
-        List<Object> cycles = db.query("SELECT * FROM budget_cycle WHERE id = " + t.getBudgetCycleId());
-        if (!cycles.isEmpty()) {
-            BudgetCycle cycle = (BudgetCycle) cycles.get(0);
-            if (t.getType() == TransactionType.EXPENSE) {
-                cycle.setCurrentSpent(cycle.getCurrentSpent() + t.getAmount());
-            } else {
-                cycle.setTotalAllowance(cycle.getTotalAllowance() + t.getAmount());
-            }
-            db.update("budget_cycle", cycle.getId(), cycle);
-            checkThresholds(cycle.getCurrentSpent(), cycle.getTotalAllowance());
-        }
- 
-        // Update current_spent on the category
-        List<Object> categories = db.query("SELECT * FROM categories WHERE id = " + t.getCategoryId());
-        if (!categories.isEmpty()) {
-            Category cat = (Category) categories.get(0);
-            if (t.getType() == TransactionType.EXPENSE) {
-                cat.setCurrentSpent(cat.getCurrentSpent() + t.getAmount());
-            }
-            db.update("categories", cat.getId(), cat);
-            notificationManager.checkCategoryLimit(cat.getCurrentSpent(), cat.getBudgetLimit());
-        }
-    }
- 
-    // Calculate how much can be spent per day given end date and remaining budget
-    public double calculateDailyLimit(BudgetCycle cycle) {
-        long daysLeft = getRemainingDays(cycle.getEndDate());
-        if (daysLeft <= 0) return 0;
-        double remaining = cycle.getTotalAllowance() - cycle.getCurrentSpent();
-        return remaining / daysLeft;
-    }
- 
-    // How many days until the budget cycle ends
-    public int getRemainingDays(LocalDate endDate) {
-        long days = ChronoUnit.DAYS.between(LocalDate.now(), endDate);
-        return (int) Math.max(days, 0);
-    }
- 
-    // Warn user if spending crosses the threshold percentage (e.g. 80%)
-    public void checkThresholds(double spent, double total) {
-        if (total <= 0) return;
-        double percent = (spent / total) * 100;
-        if (percent >= 80) {
-            notificationManager.sendAlert(
-                String.format("Warning: You have used %.1f%% of your budget!", percent)
-            );
-        }
-    }
- 
-    // Reset budget cycle: save current one, start a fresh one
-    public void resetCurrentCycle(BudgetCycle oldCycle, double newAllowance, LocalDate newEndDate) {
-        BudgetCycle newCycle = new BudgetCycle(newAllowance, newEndDate);
-        db.insert("budget_cycle", newCycle);
-    }
- 
-    // Filter transactions by category name or type
-    public List<Transaction> filterTransactions(String criteria) {
-        List<Object> all = db.query("SELECT * FROM transactions");
-        return all.stream()
-            .map(o -> (Transaction) o)
-            .filter(t -> {
-                if (t.getCategory() != null && t.getCategory().getName() != null) {
-                    if (t.getCategory().getName().equalsIgnoreCase(criteria)) return true;
-                }
-                return t.getType().name().equalsIgnoreCase(criteria);
-            })
-            .collect(Collectors.toList());
-    }
- 
-    // Fetch all transactions
-    public List<Transaction> getAllTransactions() {
-        return db.query("SELECT * FROM transactions")
-            .stream().map(o -> (Transaction) o).collect(Collectors.toList());
-    }
- 
-    // Fetch all categories
+
     public List<Category> getAllCategories() {
-        return db.query("SELECT * FROM categories")
-            .stream().map(o -> (Category) o).collect(Collectors.toList());
+        return db.query("SELECT * FROM categories").stream()
+                .map(o -> (Category) o)
+                .collect(Collectors.toList());
     }
  
-    // Fetch the active (latest) budget cycle
+    public void addTransaction(Transaction t) {
+        BudgetCycle cycle = getActiveCycle();
+        if (cycle == null) return;
+
+        if (t.getType() == TransactionType.EXPENSE) {
+            double newSpent = cycle.getCurrentSpent() + t.getAmount();
+            double totalAllowance = cycle.getTotalAllowance();
+
+            if (newSpent > totalAllowance) {
+                notificationManager.sendAlert("Balance is insufficient.");
+                return; 
+            }
+
+            if (newSpent >= totalAllowance * 0.8 && newSpent < totalAllowance) {
+                notificationManager.sendAlert("Alert : You Exceeded 80% of your budget!");
+            }
+
+            if (newSpent == totalAllowance) {
+                notificationManager.sendAlert("Attention! You have consumed 100% of your budget.");
+            }
+
+            cycle.setCurrentSpent(newSpent);
+        } else {
+            cycle.setTotalAllowance(cycle.getTotalAllowance() + t.getAmount());
+        }
+
+        updateAndSaveCycle(cycle); 
+
+        db.insert("transactions", t);
+        updateCategorySpent(t, t.getAmount(), true);
+    }
+    
+    public boolean updateTransaction(Transaction t, double oldAmount, double newAmount) {
+        BudgetCycle cycle = getActiveCycle();
+        if (cycle == null) return false;
+
+        double diff = newAmount - oldAmount;
+        if (t.getType() == TransactionType.EXPENSE) {
+            double newSpent = cycle.getCurrentSpent() + diff;
+            double totalAllowance = cycle.getTotalAllowance();
+
+            if (newSpent > totalAllowance) {
+                notificationManager.sendAlert("Balance is insufficient.");
+                return false;
+            }
+
+            if (newSpent >= totalAllowance * 0.8 && newSpent < totalAllowance) {
+                notificationManager.sendAlert("Alert : You Exceeded 80% of your budget!");
+            }
+
+            if (newSpent == totalAllowance) {
+                notificationManager.sendAlert("Attention! You have consumed 100% of your budget.");
+            }
+
+            cycle.setCurrentSpent(newSpent);
+        } else {
+            cycle.setTotalAllowance(cycle.getTotalAllowance() + diff);
+        }
+
+        boolean success = db.update("transactions", t.getId(), t);
+        updateAndSaveCycle(cycle);
+        updateCategorySpent(t, diff, true);
+        return success;
+    }
+    public boolean deleteTransaction(Transaction t) {
+        BudgetCycle cycle = getActiveCycle();
+        if (cycle == null) return false;
+
+        if (t.getType() == TransactionType.EXPENSE) {
+            cycle.setCurrentSpent(cycle.getCurrentSpent() - t.getAmount());
+        } else {
+            cycle.setTotalAllowance(cycle.getTotalAllowance() - t.getAmount());
+        }
+
+        db.delete("transactions", t.getId());
+        updateAndSaveCycle(cycle);
+        updateCategorySpent(t, t.getAmount(), false);
+        return true;
+    }
+
+   private void updateAndSaveCycle(BudgetCycle cycle) {
+        long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), cycle.getEndDate());
+        if (daysLeft <= 0) daysLeft = 1; 
+
+        double remainingMoney = cycle.getTotalAllowance() - cycle.getCurrentSpent();
+
+        if (remainingMoney <= 0) {
+            cycle.setDailyLimit(0);
+        } else {
+            cycle.setDailyLimit(remainingMoney / daysLeft);
+        }
+
+        db.update("budget_cycle", cycle.getId(), cycle);
+    }
+
+    private void updateCategorySpent(Transaction t, double amount, boolean isAdd) {
+        List<Object> res = db.query("SELECT * FROM categories WHERE id=" + t.getCategoryId());
+        if (!res.isEmpty()) {
+            Category c = (Category) res.get(0);
+            if (t.getType() == TransactionType.EXPENSE) {
+                c.setCurrentSpent(isAdd ? c.getCurrentSpent() + amount : c.getCurrentSpent() - amount);
+                db.update("categories", c.getId(), c);
+                if (isAdd) notificationManager.checkCategoryLimit(c.getCurrentSpent(), c.getBudgetLimit());
+            }
+        }
+    }
+
+    public List<Transaction> getAllTransactions() {
+        String sql = "SELECT t.*, c.name AS cat_name FROM transactions t JOIN categories c ON t.category_id = c.id ORDER BY t.time DESC";
+        return db.query(sql).stream().map(o -> (Transaction) o).collect(Collectors.toList());
+    }
+ 
     public BudgetCycle getActiveCycle() {
         List<Object> results = db.query("SELECT * FROM budget_cycle ORDER BY id DESC LIMIT 1");
-        if (results.isEmpty()) return null;
-        return (BudgetCycle) results.get(0);
+        return results.isEmpty() ? null : (BudgetCycle) results.get(0);
+    }
+    
+    public boolean updateUserPin(String userName, String newPin) {
+        try {
+            AuthManager auth = new AuthManager(""); 
+            String hashed = auth.hash(Integer.parseInt(newPin));
+
+            String sql = "UPDATE app_user SET pin_hash = '" + hashed + "' WHERE name = '" + userName + "'";
+
+            if (db instanceof DataAccess.SQLiteHelper) {
+                ((DataAccess.SQLiteHelper) db).executeNonQuery(sql);
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            System.out.println("Update PIN Error: " + e.getMessage());
+            return false;
+        }
     }
 }
- 
