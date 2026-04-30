@@ -11,18 +11,34 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import java.util.List;
 
+/**
+ * Screen that displays the history of all transactions in a table format.
+ * Supports viewing, editing, and deleting transactions.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class HistoryScreen {
     private Stage stage;
     private String userName;
     private FinanceController financeController;
     private TableView<Transaction> table;
 
+    /**
+     * Constructs a new HistoryScreen.
+     *
+     * @param stage the primary stage
+     * @param userName the current logged-in username
+     */
     public HistoryScreen(Stage stage, String userName) {
         this.stage = stage;
         this.userName = userName;
-        this.financeController = new FinanceController(new SQLiteHelper(), new Notificationmanager());
+        this.financeController = new FinanceController(new SQLiteHelper(), new NotificationManager());
     }
 
+    /**
+     * Displays the transaction history screen with table and action buttons.
+     */
     public void show() {
         VBox root = new VBox(20);
         root.setPadding(new Insets(20));
@@ -101,6 +117,9 @@ public class HistoryScreen {
         stage.setScene(new Scene(root, 700, 500));
     }
 
+    /**
+     * Handles editing the amount of a transaction via dialog.
+     */
     private void handleEdit(Transaction t) {
         double oldVal = t.getAmount();
         TextInputDialog dialog = new TextInputDialog(String.valueOf(oldVal));
@@ -121,6 +140,9 @@ public class HistoryScreen {
         });
     }
 
+    /**
+     * Refreshes the transactions table with latest data from the database.
+     */
     private void refreshTable() {
        List<Transaction> list = financeController.getAllTransactions();
        if (list.isEmpty()) {

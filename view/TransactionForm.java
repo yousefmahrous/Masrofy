@@ -1,7 +1,7 @@
 package view;
 
 import controller.FinanceController;
-import controller.Notificationmanager;
+import controller.NotificationManager;
 import DataAccess.SQLiteHelper;
 import model.*;
 import javafx.geometry.Insets;
@@ -13,17 +13,33 @@ import javafx.stage.Stage;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * UI Form for adding new income or expense transactions.
+ * Allows user to select or create a category and enter transaction details.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class TransactionForm {
     private Stage stage;
     private String userName;
     private FinanceController financeController;
 
+    /**
+     * Constructs a new TransactionForm.
+     *
+     * @param stage the primary stage
+     * @param userName the current logged-in username
+     */
     public TransactionForm(Stage stage, String userName) {
         this.stage = stage;
         this.userName = userName;
-        this.financeController = new FinanceController(new SQLiteHelper(), new Notificationmanager());
+        this.financeController = new FinanceController(new SQLiteHelper(), new NotificationManager());
     }
 
+    /**
+     * Displays the transaction form window.
+     */
     public void show() {
         VBox root = new VBox(15);
         root.setPadding(new Insets(25));

@@ -1,7 +1,7 @@
 package view;
 
 import controller.FinanceController;
-import controller.Notificationmanager;
+import controller.NotificationManager;
 import DataAccess.SQLiteHelper;
 import model.BudgetCycle;
 import javafx.geometry.*;
@@ -10,17 +10,33 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+/**
+ * Main dashboard screen of the Masrofy application.
+ * Displays budget overview, daily limit, progress bar, and navigation buttons.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class DashboardView {
     private Stage stage;
     private String userName;
     private FinanceController financeController;
 
+    /**
+     * Constructs a new DashboardView.
+     *
+     * @param stage the primary stage
+     * @param userName the current logged-in username
+     */
     public DashboardView(Stage stage, String userName) {
         this.stage = stage;
         this.userName = userName;
-        this.financeController = new FinanceController(new SQLiteHelper(), new Notificationmanager());
+        this.financeController = new FinanceController(new SQLiteHelper(), new NotificationManager());
     }
 
+    /**
+     * Displays the main dashboard with budget information and action buttons.
+     */
     public void show() {
         VBox root = new VBox(20);
         root.setPadding(new Insets(20));
@@ -78,6 +94,9 @@ public class DashboardView {
         stage.show();
     }
 
+    /**
+     * Opens a dialog to change the user's PIN.
+     */
     private void openChangePinDialog() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Security");

@@ -7,23 +7,47 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
- 
+
+/**
+ * Main controller class that handles all financial operations in the Masrofy application.
+ * Manages budget cycles, transactions, categories, and coordinates with the database and notification system.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class FinanceController {
- 
+
     private final IDatabase db;
-    private final Notificationmanager notificationManager;
- 
-    public FinanceController(IDatabase db, Notificationmanager notificationManager) {
+    private final NotificationManager notificationManager;
+
+    /**
+     * Constructs a new FinanceController with database and notification manager.
+     *
+     * @param db the database implementation
+     * @param notificationManager the notification manager instance
+     */
+    public FinanceController(IDatabase db, NotificationManager notificationManager) {
         this.db = db;
         this.notificationManager = notificationManager;
     }
 
+    /**
+     * Retrieves all categories from the database.
+     *
+     * @return list of all Category objects
+     */
     public List<Category> getAllCategories() {
         return db.query("SELECT * FROM categories").stream()
                 .map(o -> (Category) o)
                 .collect(Collectors.toList());
     }
- 
+
+    /**
+     * Adds a new transaction and updates the active budget cycle and category spending accordingly.
+     * Performs budget checks and sends notifications when necessary.
+     *
+     * @param t the transaction to be added
+     */
     public void addTransaction(Transaction t) {
         BudgetCycle cycle = getActiveCycle();
         if (cycle == null) return;
@@ -56,6 +80,14 @@ public class FinanceController {
         updateCategorySpent(t, t.getAmount(), true);
     }
     
+    /**
+     * Updates an existing transaction and adjusts budget cycle and category values.
+     *
+     * @param t the transaction with updated values
+     * @param oldAmount the previous amount before update
+     * @param newAmount the new amount after update
+     * @return true if the update was successful, false otherwise
+     */
     public boolean updateTransaction(Transaction t, double oldAmount, double newAmount) {
         BudgetCycle cycle = getActiveCycle();
         if (cycle == null) return false;
@@ -88,6 +120,13 @@ public class FinanceController {
         updateCategorySpent(t, diff, true);
         return success;
     }
+
+    /**
+     * Deletes a transaction and updates the budget cycle and category spending.
+     *
+     * @param t the transaction to delete
+     * @return true if deletion was successful
+     */
     public boolean deleteTransaction(Transaction t) {
         BudgetCycle cycle = getActiveCycle();
         if (cycle == null) return false;
@@ -104,7 +143,12 @@ public class FinanceController {
         return true;
     }
 
-   private void updateAndSaveCycle(BudgetCycle cycle) {
+    /**
+     * Updates the daily limit of the budget cycle and saves it to the database.
+     *
+     * @param cycle the budget cycle to update and save
+     */
+    private void updateAndSaveCycle(BudgetCycle cycle) {
         long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), cycle.getEndDate());
         if (daysLeft <= 0) daysLeft = 1; 
 
@@ -119,6 +163,13 @@ public class FinanceController {
         db.update("budget_cycle", cycle.getId(), cycle);
     }
 
+    /**
+     * Updates the current spent amount of a category and optionally checks its budget limit.
+     *
+     * @param t the transaction affecting the category
+     * @param amount the amount to add or subtract
+     * @param isAdd true if adding, false if subtracting
+     */
     private void updateCategorySpent(Transaction t, double amount, boolean isAdd) {
         List<Object> res = db.query("SELECT * FROM categories WHERE id=" + t.getCategoryId());
         if (!res.isEmpty()) {
@@ -131,16 +182,33 @@ public class FinanceController {
         }
     }
 
+    /**
+     * Retrieves all transactions with their associated category names.
+     *
+     * @return list of all transactions
+     */
     public List<Transaction> getAllTransactions() {
         String sql = "SELECT t.*, c.name AS cat_name FROM transactions t JOIN categories c ON t.category_id = c.id ORDER BY t.time DESC";
         return db.query(sql).stream().map(o -> (Transaction) o).collect(Collectors.toList());
     }
- 
+
+    /**
+     * Gets the most recent active budget cycle.
+     *
+     * @return the active BudgetCycle, or null if none exists
+     */
     public BudgetCycle getActiveCycle() {
         List<Object> results = db.query("SELECT * FROM budget_cycle ORDER BY id DESC LIMIT 1");
         return results.isEmpty() ? null : (BudgetCycle) results.get(0);
     }
     
+    /**
+     * Updates the user's PIN in the database.
+     *
+     * @param userName the username whose PIN will be updated
+     * @param newPin the new 4-digit PIN as string
+     * @return true if the update was successful
+     */
     public boolean updateUserPin(String userName, String newPin) {
         try {
             AuthManager auth = new AuthManager(""); 

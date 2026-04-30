@@ -10,16 +10,30 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import java.util.List;
 
+/**
+ * Login screen for the Masrofy application using PIN authentication.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class LoginScreen {
     private Stage stage;
     private PasswordField pinField;
     private UserProfile user; 
 
+    /**
+     * Constructs the LoginScreen and loads the user data.
+     *
+     * @param stage the primary stage
+     */
     public LoginScreen(Stage stage) {
         this.stage = stage;
         loadUser(); 
     }
 
+    /**
+     * Loads the user profile from the database.
+     */
     private void loadUser() {
         SQLiteHelper db = new SQLiteHelper();
         List<Object> results = db.query("SELECT * FROM app_user LIMIT 1");
@@ -29,6 +43,9 @@ public class LoginScreen {
         }
     }
 
+    /**
+     * Displays the login screen.
+     */
     public void show() {
         if (user == null) {
             System.err.println("No user found, redirecting to setup...");
@@ -61,6 +78,9 @@ public class LoginScreen {
         stage.show();
     }
 
+    /**
+     * Handles the login process by verifying the entered PIN.
+     */
     private void handleLogin() {
         try {
             if (pinField.getText().isEmpty()) return;
@@ -80,6 +100,9 @@ public class LoginScreen {
         }
     }
 
+    /**
+     * Shows an error alert dialog.
+     */
     private void showError(String title, String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);

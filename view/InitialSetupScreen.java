@@ -11,11 +11,26 @@ import javafx.stage.Stage;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDate;
 
+/**
+ * Initial setup screen shown when the application is launched for the first time.
+ * Allows the user to create their profile, set a PIN, and define the initial budget cycle.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class InitialSetupScreen {
     private Stage stage;
 
+    /**
+     * Constructs a new InitialSetupScreen.
+     *
+     * @param stage the primary stage
+     */
     public InitialSetupScreen(Stage stage) { this.stage = stage; }
 
+    /**
+     * Displays the initial setup form for user registration and budget initialization.
+     */
     public void show() {
         VBox root = new VBox(12);
         root.setAlignment(Pos.CENTER);
@@ -75,6 +90,14 @@ public class InitialSetupScreen {
         stage.show();
     }
 
+    /**
+     * Saves the initial user data, hashed PIN, and creates the first budget cycle.
+     *
+     * @param name the user's name
+     * @param pin the chosen PIN
+     * @param allowance the initial budget allowance
+     * @param endDate the end date of the first budget cycle
+     */
     private void saveUserData(String name, String pin, double allowance, LocalDate endDate) {
         SQLiteHelper db = new SQLiteHelper();
 

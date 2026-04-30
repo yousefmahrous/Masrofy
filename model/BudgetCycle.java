@@ -3,6 +3,13 @@ package model;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
+/**
+ * Represents a budget cycle (usually monthly) in the Masrofy application.
+ * Tracks total allowance, current spending, daily limit, and period dates.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class BudgetCycle {
     private int id;
     private double totalAllowance;
@@ -13,12 +20,18 @@ public class BudgetCycle {
     private double dailyLimit; 
     private ArrayList<Transaction> transactions = new ArrayList<>();
     
+    /**
+     * Constructs a new BudgetCycle with total allowance and end date.
+     */
     public BudgetCycle(double totalAllowance, LocalDate endDate) {
         this.totalAllowance = totalAllowance;
         this.endDate = endDate;
         this.currentSpent = 0.0;
     }
 
+    /**
+     * Full constructor used when loading from database.
+     */
     public BudgetCycle(int id, double totalAllowance, double currentSpent, LocalDate startDate, LocalDate endDate, double dailyLimit) {
         this.id = id;
         this.totalAllowance = totalAllowance;

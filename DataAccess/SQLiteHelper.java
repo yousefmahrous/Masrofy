@@ -8,9 +8,23 @@ import java.util.List;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * SQLite database implementation of the {@link IDatabase} interface.
+ * Handles all database operations for the Masrofy application including
+ * CRUD operations and table creation.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class SQLiteHelper implements IDatabase {
     private static final String url = "jdbc:sqlite:Masrofy.db";
 
+    /**
+     * Displays an error alert to the user.
+     *
+     * @param title the title of the error alert
+     * @param content the error message content
+     */
     private void showError(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
@@ -19,6 +33,12 @@ public class SQLiteHelper implements IDatabase {
         alert.showAndWait();
     }
 
+    /**
+     * Establishes a connection to the SQLite database.
+     *
+     * @return Connection object to the database
+     * @throws SQLException if a database access error occurs
+     */
     private Connection connect() throws SQLException {
         try {
             Class.forName("org.sqlite.JDBC");
@@ -28,6 +48,9 @@ public class SQLiteHelper implements IDatabase {
         return DriverManager.getConnection(url);
     }
     
+    /**
+     * Creates the necessary database tables if they do not already exist.
+     */
     @Override
     public void onCreate() {
         try (Connection conn = this.connect(); Statement stmt = conn.createStatement()) {
@@ -40,6 +63,9 @@ public class SQLiteHelper implements IDatabase {
         }
     }
 
+    /**
+     * Inserts data into the appropriate table based on the object type.
+     */
     @Override
     public boolean insert(String table, Object data) {
         try (Connection conn = this.connect()) {
@@ -82,6 +108,9 @@ public class SQLiteHelper implements IDatabase {
         return false;
     }
 
+    /**
+     * Updates a record in the database based on the object type.
+     */
     @Override
     public boolean update(String table, int id, Object data) {
         try (Connection conn = this.connect()) {
@@ -114,6 +143,9 @@ public class SQLiteHelper implements IDatabase {
         }
     }
 
+    /**
+     * Deletes a record from the specified table by its ID.
+     */
     @Override
     public boolean delete(String table, int id) {
         try (Connection conn = this.connect(); PreparedStatement pstmt = conn.prepareStatement("DELETE FROM " + table + " WHERE id = ?")) {
@@ -125,6 +157,9 @@ public class SQLiteHelper implements IDatabase {
         }
     }
 
+    /**
+     * Executes a SELECT query and maps the results to appropriate model objects.
+     */
     @Override
     public List<Object> query(String sql) {
         List<Object> results = new ArrayList<>();
@@ -148,6 +183,11 @@ public class SQLiteHelper implements IDatabase {
         return results;
     }
 
+    /**
+     * Executes a non-query SQL statement (UPDATE, INSERT, DELETE) without returning results.
+     *
+     * @param sql the SQL statement to execute
+     */
     public void executeNonQuery(String sql) {
         try (Connection conn = DriverManager.getConnection(url);
              Statement stmt = conn.createStatement()) {

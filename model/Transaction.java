@@ -2,6 +2,13 @@ package model;
 
 import java.time.LocalDateTime;
         
+/**
+ * Represents a financial transaction in the Masrofy application.
+ * Can be either an INCOME or EXPENSE with associated category and budget cycle.
+ *
+ * @author Masrofy Development Team
+ * @version 1.0
+ */
 public class Transaction {
     private int id;
     private int categoryID;
@@ -12,6 +19,9 @@ public class Transaction {
     private Category category;
     private TransactionType type;
 
+    /**
+     * Constructs a new Transaction without ID (for new transactions).
+     */
     public Transaction(int categoryID, int budgetCycleId, double amount, String notes, Category category, TransactionType type) {
         this.categoryID = categoryID;
         this.budgetCycleId = budgetCycleId;
@@ -21,6 +31,9 @@ public class Transaction {
         this.type = type;
     }
 
+    /**
+     * Constructs a Transaction with full details including ID (for loaded transactions).
+     */
     public Transaction(int id, int categoryID, int budgetCycleId, double amount, String notes, LocalDateTime time, Category category, TransactionType type) {
         this.id = id;
         this.categoryID = categoryID;
