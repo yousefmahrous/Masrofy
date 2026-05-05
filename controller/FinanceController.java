@@ -226,4 +226,49 @@ public class FinanceController {
             return false;
         }
     }
+    
+        /**
+     * Checks if the current budget cycle has ended.
+     * If the cycle has ended, clears all application data and returns true.
+     * 
+     * @return true if cycle ended and data was cleared, false otherwise
+     */
+    public boolean checkAndHandleCycleExpiration() {
+        BudgetCycle activeCycle = getActiveCycle();
+
+        if (activeCycle == null) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate endDate = activeCycle.getEndDate();
+
+        // Check if cycle has ended (end date is before today)
+        if (endDate.isBefore(today) || endDate.isEqual(today)) {
+            clearAllApplicationData();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Clears all data from all tables to reset the application state.
+     * This is called when a budget cycle ends.
+     */
+    private void clearAllApplicationData() {
+        if (db instanceof DataAccess.SQLiteHelper) {
+            ((DataAccess.SQLiteHelper) db).clearAllTables();
+        }
+    }
+
+    /**
+     * Checks if any user exists in the database.
+     * 
+     * @return true if at least one user exists, false otherwise
+     */
+    public boolean hasExistingUser() {
+        List<Object> users = db.query("SELECT * FROM app_user");
+        return !users.isEmpty();
+    }
 }
