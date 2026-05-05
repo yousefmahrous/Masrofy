@@ -243,7 +243,6 @@ public class FinanceController {
         LocalDate today = LocalDate.now();
         LocalDate endDate = activeCycle.getEndDate();
 
-        // Check if cycle has ended (end date is before today)
         if (endDate.isBefore(today) || endDate.isEqual(today)) {
             clearAllApplicationData();
             return true;
