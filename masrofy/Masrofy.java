@@ -32,15 +32,11 @@ public class Masrofy extends Application {
         SQLiteHelper db = new SQLiteHelper();
         db.onCreate();
 
-        // Create controller to check cycle status
         FinanceController financeController = new FinanceController(db, new NotificationManager());
 
-        // Check if cycle has ended - if so, data will be cleared automatically
         boolean cycleEnded = financeController.checkAndHandleCycleExpiration();
 
-        // After potential data clearing, check if user exists
         if (!financeController.hasExistingUser()) {
-            // No user exists (either fresh install OR cycle ended and data cleared)
             new InitialSetupScreen(primaryStage).show();
         } else {
             new LoginScreen(primaryStage).show();
